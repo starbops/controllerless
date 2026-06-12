@@ -1,0 +1,15 @@
+apiVersion: agentic.io/v1alpha1
+kind: ScheduledTask
+metadata:
+  name: nightly-backup
+  namespace: default
+spec:
+  schedule: "*/1 * * * *"   # every minute for demo purposes
+  suspend: false
+  historyLimit: 5
+  podSpec:
+    containers:
+      - name: backup
+        image: busybox:latest
+        command: ["sh", "-c", "echo backup complete && sleep 5"]
+    restartPolicy: Never
