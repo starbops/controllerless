@@ -5,6 +5,7 @@ go 1.26.0
 require (
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/google/cel-go v0.26.0
+	github.com/oklog/ulid/v2 v2.1.1
 	github.com/ollama/ollama v0.30.8
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/cobra v1.10.2
