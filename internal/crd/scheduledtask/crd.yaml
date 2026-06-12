@@ -1,0 +1,140 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: scheduledtasks.agentic.io
+spec:
+  group: agentic.io
+  names:
+    kind: ScheduledTask
+    listKind: ScheduledTaskList
+    plural: scheduledtasks
+    singular: scheduledtask
+    shortNames:
+      - st
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      subresources:
+        status: {}
+      additionalPrinterColumns:
+        - name: Schedule
+          type: string
+          jsonPath: .spec.schedule
+          description: Cron expression
+        - name: Suspend
+          type: boolean
+          jsonPath: .spec.suspend
+          description: Whether new Pod creation is suspended
+        - name: Next Fire
+          type: string
+          jsonPath: .status.nextFireTime
+          description: Next scheduled fire time (RFC3339)
+        - name: Age
+          type: date
+          jsonPath: .metadata.creationTimestamp
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required:
+                - schedule
+                - podSpec
+              properties:
+                schedule:
+                  type: string
+                  description: >
+                    Standard 5-field cron expression (e.g. "0 2 * * *").
+                    Parsed by the cron.nextFireTime tool at reconcile time.
+                podSpec:
+                  type: object
+                  description: >
+                    PodSpec to run on each scheduled fire. Equivalent to
+                    pod.spec — the agent creates Pods directly (no Job).
+                  x-kubernetes-preserve-unknown-fields: true
+                historyLimit:
+                  type: integer
+                  minimum: 0
+                  default: 5
+                  description: >
+                    Maximum number of fire records to retain in status.fires.
+                    Oldest entries are pruned first.
+                suspend:
+                  type: boolean
+                  default: false
+                  description: >
+                    When true, no new Pods will be created on future fires.
+                    Existing Pods are not affected.
+            status:
+              type: object
+              properties:
+                nextFireTime:
+                  type: string
+                  format: date-time
+                  description: RFC3339 timestamp of the next scheduled fire.
+                fires:
+                  type: array
+                  description: >
+                    Append-only event log of past fires. Pruned to historyLimit
+                    by the prune-history skill. Never reordered — sorted by
+                    scheduledAt ascending.
+                  items:
+                    type: object
+                    properties:
+                      scheduledAt:
+                        type: string
+                        format: date-time
+                        description: Unix epoch string used as the dedup label value.
+                      podName:
+                        type: string
+                        description: Name of the Pod created for this fire.
+                      phase:
+                        type: string
+                        description: Last observed Pod phase.
+                        enum:
+                          - Pending
+                          - Running
+                          - Succeeded
+                          - Failed
+                          - Unknown
+                      note:
+                        type: string
+                        description: Human-readable summary written by the update-fire-status skill.
+                      startedAt:
+                        type: string
+                        format: date-time
+                        description: Time the Pod transitioned to Running.
+                      finishedAt:
+                        type: string
+                        format: date-time
+                        description: Time the Pod terminated (Succeeded or Failed).
+                conditions:
+                  type: array
+                  description: Standard Kubernetes condition list.
+                  items:
+                    type: object
+                    required:
+                      - type
+                      - status
+                    properties:
+                      type:
+                        type: string
+                      status:
+                        type: string
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                      reason:
+                        type: string
+                      message:
+                        type: string
+                      lastTransitionTime:
+                        type: string
+                        format: date-time
+                      observedGeneration:
+                        type: integer
+                        format: int64
