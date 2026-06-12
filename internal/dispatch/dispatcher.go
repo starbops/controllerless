@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 
 	"github.com/starbops/controllerless/internal/kube"
 	"github.com/starbops/controllerless/internal/llm"
@@ -27,6 +28,7 @@ type Deps struct {
 
 // Dispatcher evaluates skills against incoming events and runs the agentic loop.
 type Dispatcher struct {
+	mu      sync.RWMutex
 	deps    Deps
 	limiter *rateLimiter
 }
@@ -77,8 +79,12 @@ func (d *Dispatcher) Dispatch(ctx context.Context, gvk, eventType, resourceKey s
 
 // matchSkills returns the skills that match gvk + eventType and pass CEL conditions (S4).
 func (d *Dispatcher) matchSkills(gvk, eventType string, obj map[string]any) []skill.Skill {
+	d.mu.RLock()
+	skills := d.deps.Skills
+	d.mu.RUnlock()
+
 	var matched []skill.Skill
-	for _, s := range d.deps.Skills {
+	for _, s := range skills {
 		for _, trig := range s.Frontmatter.Triggers {
 			if trig.GVK != gvk {
 				continue
