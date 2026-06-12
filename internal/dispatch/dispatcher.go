@@ -58,8 +58,10 @@ func (d *Dispatcher) Dispatch(ctx context.Context, gvk, eventType, resourceKey s
 			continue
 		}
 
+		ns, resName := splitResourceKey(resourceKey)
 		eventYAML := objectToYAML(obj)
-		sig, err := reconcile(ctx, s, eventYAML, d.deps.Provider, d.deps.Tools, defaultMaxTurns)
+		sig, err := reconcile(ctx, s, eventYAML, d.deps.Provider, d.deps.Tools, defaultMaxTurns,
+			d.deps.TracesDir, ns, gvk, resName)
 		if err != nil {
 			return fmt.Errorf("dispatch: reconcile skill %q: %w", s.Frontmatter.Name, err)
 		}
@@ -106,6 +108,15 @@ func (d *Dispatcher) matchSkills(gvk, eventType string, obj map[string]any) []sk
 		}
 	}
 	return matched
+}
+
+// splitResourceKey parses "namespace/name" into its parts.
+// For cluster-scoped resources, the key may be just "name" with no slash.
+func splitResourceKey(key string) (namespace, name string) {
+	if i := strings.IndexByte(key, '/'); i >= 0 {
+		return key[:i], key[i+1:]
+	}
+	return "", key
 }
 
 func containsEventType(list []string, t string) bool {

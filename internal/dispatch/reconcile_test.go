@@ -86,7 +86,7 @@ func TestReconcile_DoneTerminatesLoop(t *testing.T) {
 	reg := makeToolReg()
 	s := makeSkill("my-skill")
 
-	sig, err := reconcile(context.Background(), s, "kind: Pod\n", prov, reg, 20)
+	sig, err := reconcile(context.Background(), s, "kind: Pod\n", prov, reg, 20, "", "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -104,7 +104,7 @@ func TestReconcile_RequeueTerminatesLoop(t *testing.T) {
 	reg := makeToolReg()
 	s := makeSkill("my-skill")
 
-	sig, err := reconcile(context.Background(), s, "kind: Pod\n", prov, reg, 20)
+	sig, err := reconcile(context.Background(), s, "kind: Pod\n", prov, reg, 20, "", "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -123,7 +123,7 @@ func TestReconcile_MaxTurnsGuard(t *testing.T) {
 	reg := makeToolReg()
 	s := makeSkill("my-skill")
 
-	sig, err := reconcile(context.Background(), s, "kind: Pod\n", prov, reg, maxTurns)
+	sig, err := reconcile(context.Background(), s, "kind: Pod\n", prov, reg, maxTurns, "", "", "", "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

@@ -3,7 +3,10 @@ package dispatch
 import (
 	"context"
 	"encoding/json"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/starbops/controllerless/internal/llm"
 	"github.com/starbops/controllerless/internal/llm/providers/mock"
@@ -136,5 +139,37 @@ func TestDispatch_CELFalseConditionSkipped(t *testing.T) {
 	}
 	if err := d.Dispatch(context.Background(), "/v1/Pod", "Add", "default/my-pod", obj); err != nil {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDispatch_WritesTraceFileWhenTracesDir(t *testing.T) {
+	tracesDir := t.TempDir()
+	prov := mock.New(doneMockScript())
+	reg := tools.NewRegistry()
+	tools.RegisterMetaTools(reg)
+
+	d := New(Deps{
+		Skills:    []skill.Skill{matchingSkill()},
+		Tools:     reg,
+		Provider:  prov,
+		TracesDir: tracesDir,
+	})
+
+	obj := map[string]any{
+		"apiVersion": "v1",
+		"kind":       "Pod",
+		"metadata":   map[string]any{"name": "my-pod", "namespace": "default"},
+	}
+	if err := d.Dispatch(context.Background(), "/v1/Pod", "Add", "default/my-pod", obj); err != nil {
+		t.Fatalf("Dispatch returned error: %v", err)
+	}
+
+	dateDir := time.Now().UTC().Format("2006-01-02")
+	entries, err := os.ReadDir(filepath.Join(tracesDir, dateDir))
+	if err != nil {
+		t.Fatalf("trace dir not created: %v", err)
+	}
+	if len(entries) == 0 {
+		t.Fatal("expected at least one trace file")
 	}
 }
